@@ -1,0 +1,11 @@
+body {
+  margin: 0;
+  background: #f5f7fa;
+  font-family:
+    "Noto Sans Thai",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}

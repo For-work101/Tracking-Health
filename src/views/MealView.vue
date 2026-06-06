@@ -4,6 +4,7 @@ import { ref } from 'vue'
 const fileInput = ref(null)
 const previewImage = ref(null)
 const mealRate = ref('')
+const foodName = ref('')
 
 const openCamera = () => {
   fileInput.value.click()
@@ -18,9 +19,23 @@ const onSelectFile = (event) => {
 }
 
 const saveMeal = () => {
-  alert('บันทึกสำเร็จ')
+  if (!foodName.value.trim()) {
+    alert('กรุณากรอกชื่ออาหาร')
+    return
+  }
+
+  if (!mealRate.value) {
+    alert('กรุณาเลือกคุณภาพอาหาร')
+    return
+  }
+
+  alert(
+    `บันทึกสำเร็จ\nอาหาร: ${foodName.value}\nระดับ: ${mealRate.value}`
+  )
 
   previewImage.value = null
+  foodName.value = ''
+  mealRate.value = ''
 
   if (fileInput.value) {
     fileInput.value.value = ''
@@ -56,6 +71,17 @@ const saveMeal = () => {
         :src="previewImage"
         alt="food"
       />
+
+      <div class="food-name-section">
+        <label>ชื่ออาหาร</label>
+
+        <input
+          v-model="foodName"
+          type="text"
+          placeholder=""
+          class="food-input"
+        />
+      </div>
 
       <div class="foodqc">
         <div>คุณภาพอาหาร</div>
@@ -190,5 +216,27 @@ const saveMeal = () => {
 .selected {
   transform: scale(1.5);
   font-weight: bold;
+}
+.food-name-section {
+  margin-bottom: 20px;
+}
+
+.food-name-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.food-input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.food-input:focus {
+  outline: none;
+  border-color: #42b883;
 }
 </style>

@@ -11,19 +11,19 @@ const meals = ref([
     id: 1,
     foodName: 'ข้าวต้มปลา',
     image: 'https://placehold.co/300x200',
-    time: '08:30',
+
   },
   {
     id: 2,
     foodName: 'แกงจืดเต้าหู้',
     image: 'https://placehold.co/300x200',
-    time: '12:15',
+
   },
   {
     id: 2,
-    foodName: 'แกงจืดเต้าหู้',
+    foodName: 'กะเพราหมูสับ',
     image: 'https://placehold.co/300x200',
-    time: '12:15',
+
   },
 ])
 
