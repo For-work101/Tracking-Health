@@ -47,7 +47,7 @@ const goToMeal = () => {
       class="action-btn"
       @click="showHistory = true"
     >
-      📖 ประวัติการกิน
+      ประวัติการกิน
     </button>
 
     <!-- Popup -->
