@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <h1>เข้าสู่ระบบ</h1>
+    <h1>TRACKING FOOD</h1>
 
     <input v-model="phone" type="tel" placeholder="เบอร์โทรศัพท์" />
 
@@ -20,10 +20,31 @@ import { useRouter } from 'vue-router'
 const phone = ref('')
 const router = useRouter()
 
-const login = () => {
-  localStorage.setItem('phone', phone.value)
+import { supabase } from '@/lib/supabase'
 
-  router.push('/dashboard')
+const login = async () => {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('phone', phone.value)
+    .single()
+
+  if (error || !data) {
+    alert('ไม่พบผู้ใช้งาน')
+    return
+  }
+
+  localStorage.setItem(
+    'user',
+    JSON.stringify(data)
+  )
+
+  // แยกตาม role
+  if (data.role === 'admin') {
+    router.push('/admin')
+  } else {
+    router.push('/dashboard')
+  }
 }
 </script>
 
