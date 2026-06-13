@@ -15,10 +15,9 @@
       </select>
 
       <input
-        v-model.number="sodium"
-        type="number"
-        placeholder="โซเดียม (mg)"
-        />
+        v-model="sodium"
+        placeholder="โซเดียม (mg) เช่น 800 หรือ 800-900"
+      />
 
       <input
         type="file"
@@ -246,6 +245,16 @@ const saveFood = async () => {
       if (error)
         throw error
 
+        if (!sodium.value) {
+          alert('กรอกปริมาณโซเดียม')
+          return
+        }
+
+        if (!validateSodium(sodium.value)) {
+          alert('รูปแบบโซเดียมไม่ถูกต้อง\nเช่น 800 หรือ 800-900')
+          return
+        }
+
       alert('เพิ่มอาหารสำเร็จ')
     }
 
@@ -256,6 +265,8 @@ const saveFood = async () => {
   } catch (error) {
     alert(error.message)
   }
+
+  
 }
 
 const resetForm = () => {
@@ -265,7 +276,7 @@ const resetForm = () => {
   foodLevel.value = 'green'
   selectedFile.value = null
   previewUrl.value = ''
-  sodium.value = 0
+  sodium.value = ''
 }
 
 const editFood = (food) => {
@@ -274,7 +285,7 @@ const editFood = (food) => {
     foodName.value = food.food_name
     foodLevel.value = food.food_level
     previewUrl.value = food.image_url || ''
-    sodium.value = food.sodium || 0
+    sodium.value = food.sodium || ''
 
   window.scrollTo({
     top: 0,
@@ -336,6 +347,20 @@ const levelText = (
 
   return '🔴 ควรลด'
 }
+
+const validateSodium = (val) => {
+  // รับทั้งแบบ "800" และ "800-900"
+  const rangeRegex = /^\d+(-\d+)?$/
+  if (!rangeRegex.test(val)) return false
+
+  const parts = val.split('-')
+  if (parts.length === 2) {
+    return Number(parts[0]) < Number(parts[1])  // ตัวแรกต้องน้อยกว่าตัวหลัง
+  }
+  return true
+}
+
+
 
 onMounted(() => {
   loadFoods()

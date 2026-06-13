@@ -42,14 +42,14 @@
         </strong>
       </div>
 
-      <div class="sodium-card">
+      <!-- <div class="sodium-card">
         🧂 โซเดียมเดือนนี้
 
         <strong>
           {{ sodiumTotal }}
         </strong>
         mg
-      </div>
+      </div> -->
     </div>
 
     <div class="remark-sodium">
