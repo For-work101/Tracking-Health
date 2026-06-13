@@ -11,7 +11,7 @@
       <select v-model="foodLevel">
         <option value="green">🟢 ดี</option>
         <option value="yellow">🟡 ปานกลาง</option>
-        <option value="red">🔴 ควรลด</option>
+        <option value="red">🔴 แย่</option>
       </select>
 
       <input
