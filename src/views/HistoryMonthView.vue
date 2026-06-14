@@ -12,8 +12,36 @@
       {{ title }}
     </h2>
 
+    <div class="summary-card">
+
+  <FoodPieChart
+    :green="greenCount"
+    :yellow="yellowCount"
+    :red="redCount"
+  />
+
+  <div class="summary-info">
+    <div>
+      🟢 {{ greenPercent }}%
+    </div>
+
+    <div>
+      🟡 {{ yellowPercent }}%
+    </div>
+
+    <div>
+      🔴 {{ redPercent }}%
+    </div>
+
+    <!-- <div class="sodium">
+      🧂 {{ sodiumTotal }} mg
+    </div> -->
+  </div>
+
+</div>
+
     <div
-      v-for="item in history"
+      v-for="item in paginatedHistory"
       :key="item.id"
       class="history-card"
     >
@@ -43,14 +71,43 @@
       </div>
     </div>
 
+    <div
+      v-if="totalPages > 1"
+      class="pagination"
+    >
+
+      <button
+        @click="currentPage--"
+        :disabled="
+          currentPage === 1
+        "
+      >
+        ◀ ก่อนหน้า
+      </button>
+
+      <span>
+        {{ currentPage }}
+        /
+        {{ totalPages }}
+      </span>
+
+      <button
+        @click="currentPage++"
+        :disabled="
+          currentPage === totalPages
+        "
+      >
+        ถัดไป ▶
+      </button>
+
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import {
-  ref,
-  onMounted
-} from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import FoodPieChart from '@/components/FoodPieChart.vue'
 
 import {
   useRoute,
@@ -65,6 +122,92 @@ const router = useRouter()
 
 const history = ref([])
 const title = ref('')
+
+const currentPage = ref(1)
+const itemsPerPage = 5
+
+const greenCount = computed(() =>
+  history.value.filter(
+    item => item.food_level === 'green'
+  ).length
+)
+
+const yellowCount = computed(() =>
+  history.value.filter(
+    item => item.food_level === 'yellow'
+  ).length
+)
+
+const redCount = computed(() =>
+  history.value.filter(
+    item => item.food_level === 'red'
+  ).length
+)
+
+const totalMeals = computed(() =>
+  history.value.length
+)
+
+const greenPercent = computed(() =>
+  totalMeals.value
+    ? Math.round(
+        (greenCount.value /
+          totalMeals.value) *
+          100
+      )
+    : 0
+)
+
+const yellowPercent = computed(() =>
+  totalMeals.value
+    ? Math.round(
+        (yellowCount.value /
+          totalMeals.value) *
+          100
+      )
+    : 0
+)
+
+const redPercent = computed(() =>
+  totalMeals.value
+    ? Math.round(
+        (redCount.value /
+          totalMeals.value) *
+          100
+      )
+    : 0
+)
+
+const sodiumTotal = computed(() => {
+  return history.value.reduce(
+    (sum, item) =>
+      sum + (item.foods?.sodium || 0),
+    0
+  )
+})
+
+const totalPages = computed(() =>
+  Math.ceil(
+    history.value.length /
+    itemsPerPage
+  )
+)
+
+const paginatedHistory =
+computed(() => {
+
+  const start =
+    (currentPage.value - 1) *
+    itemsPerPage
+
+  const end =
+    start + itemsPerPage
+
+  return history.value.slice(
+    start,
+    end
+  )
+})
 
 const loadHistory =
 async () => {
@@ -135,20 +278,22 @@ new Date(year, monthNum, 0)
     data || []
 }
 
-const formatDate =
-(date) => {
+const formatDate = (date) => {
 
-  return new Date(
-    date
-  )
-  .toLocaleDateString(
-    'th-TH',
-    {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    }
-  )
+  return new Date(date)
+    .toLocaleString(
+      'th-TH',
+      {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+
+        hour: '2-digit',
+        minute: '2-digit',
+
+        hour12: false
+      }
+    )
 }
 
 const levelText =
@@ -227,5 +372,66 @@ h2 {
 
 .food-info p {
   margin: 8px 0;
+}
+
+.summary-card {
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+
+  box-shadow:
+    0 4px 12px rgba(0,0,0,.08);
+}
+
+.summary-info {
+  margin-top: 15px;
+
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 10px;
+}
+
+.summary-info div {
+  background: #f5f5f5;
+
+  padding: 10px 14px;
+
+  border-radius: 10px;
+
+  font-weight: bold;
+}
+
+.sodium {
+  background: #fff3cd !important;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 15px;
+
+  margin-top: 25px;
+}
+
+.pagination button {
+  border: none;
+
+  background: #42b883;
+  color: white;
+
+  padding: 10px 16px;
+
+  border-radius: 10px;
+
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 </style>

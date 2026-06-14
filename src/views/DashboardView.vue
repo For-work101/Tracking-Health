@@ -8,7 +8,7 @@
       </h2>
 
       <p>
-        สรุปการกินประจำเดือน
+        สรุปการกินประจำเดือน {{ currentMonth }}
       </p>
     </div>
 
@@ -106,6 +106,8 @@ import { useRouter } from 'vue-router'
 import FoodPieChart from '@/components/FoodPieChart.vue'
 import { supabase } from '@/lib/supabase'
 
+const currentMonth = ref('')
+
 const router = useRouter()
 
 const fullname = ref('')
@@ -119,23 +121,29 @@ const history = ref([])
 const TIMEOUT_MS = 10 * 60 * 1000 // 10 นาที
 let logoutTimer = null
 
+const now = new Date()
+
+const startDate =
+  new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    1
+  )
+
+const endDate =
+  new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23, 59, 59
+  )
+
+
 const totalMeals = computed(() =>
   greenCount.value +
   yellowCount.value +
   redCount.value
 )
-
-const sodiumTotal = computed(() => {
-
-  if (!history.value)
-    return 0
-
-  return history.value.reduce(
-    (sum, item) =>
-      sum + (item.foods?.sodium || 0),
-    0
-  )
-})
 
 const greenPercent = computed(() => {
   if (totalMeals.value === 0) return 0
@@ -178,22 +186,35 @@ const loadDashboard = async () => {
     return
   }
 
-  fullname.value =
-    user.fullname
+  fullname.value = user.fullname
+
+  currentMonth.value =
+  new Date().toLocaleDateString(
+    'th-TH',
+    {
+      month: 'long',
+      year: 'numeric'
+    }
+  )
 
   const { data, error } =
-    await supabase
-      .from('meal_logs')
-      .select(`
-        *,
-        foods(
-          sodium
-        )
-      `)
-      .eq(
-        'user_id',
-        user.id
+  await supabase
+    .from('meal_logs')
+    .select(`
+      *,
+      foods(
+        sodium
       )
+    `)
+    .eq('user_id', user.id)
+    .gte(
+      'eaten_at',
+      startDate.toISOString()
+    )
+    .lte(
+      'eaten_at',
+      endDate.toISOString()
+    )
 
   if (error) {
     console.error(error)
