@@ -8,7 +8,7 @@
       </h2>
 
       <p>
-        สรุปการกินประจำเดือน {{ currentMonth }}
+        สรุปการกินประจำวันที่ {{ currentDate }}
       </p>
     </div>
 
@@ -19,6 +19,36 @@
         :red="redCount"
       />
     </div>
+
+    <div class="sodium-card">
+
+      <div class="sodium-header">
+        <span>
+          🧂 โซเดียมวันนี้
+        </span>
+
+        <strong>
+          {{ Number(sodiumToday).toLocaleString() }}
+          / 2,000 mg
+        </strong>
+      </div>
+
+      <div class="progress-bar">
+        <div
+          class="progress-fill"
+          :style="{
+            width:
+              sodiumPercent + '%'
+          }"
+        />
+      </div>
+
+      <p class="progress-text">
+        {{ sodiumPercent }}%
+        ของปริมาณที่แนะนำต่อวัน
+      </p>
+
+</div>
 
     <div class="summary-card">
       <div class="summary green">
@@ -42,17 +72,12 @@
         </strong>
       </div>
 
-      <!-- <div class="sodium-card">
-        🧂 โซเดียมเดือนนี้
-
-        <strong>
-          {{ sodiumTotal }}
-        </strong>
-        mg
-      </div> -->
+    
     </div>
 
-    <div class="remark-sodium">
+    <div class="sodium-card">
+      <div class="remark-sodium">
+        
       <p>หมายเหตุ </p>
       <p>1.ไม่ควรทานโซเดียมเกิน 600 mg ต่อมื้ออาหาร</p>
       <p>2.หากทานโซเดียมเกิน 2000 mg/วัน เป็นระยะเวลานาน จะนำไปสู่การเป็นโรคความดันโลหิตสูง</p>
@@ -60,13 +85,9 @@
       <p style="color: green;">ควรดื่มน้ำให้เพียงพอเพื่อให้โซเดียมขับออกทางปัสสาวะ และลดการกินเค็มในมื้อถัดไป</p>
     </div>
 
-    <div class="meal-total">
-      ทั้งหมด
-      <strong>
-        {{ totalMeals }}
-      </strong>
-      มื้อ
     </div>
+    
+    
 
     <button
       class="main-btn"
@@ -108,7 +129,8 @@ import { useRouter } from 'vue-router'
 import FoodPieChart from '@/components/FoodPieChart.vue'
 import { supabase } from '@/lib/supabase'
 
-const currentMonth = ref('')
+const currentDate = ref('')
+
 
 const router = useRouter()
 
@@ -120,25 +142,22 @@ const redCount = ref(0)
 
 const history = ref([])
 
+const sodiumToday = ref(0)
+
+
+
+const sodiumPercent = computed(() => {
+  return Math.min(
+    Math.round(
+      (sodiumToday.value / 2000) * 100
+    ),
+    100
+  )
+})
+
 const TIMEOUT_MS = 10 * 60 * 1000 // 10 นาที
 let logoutTimer = null
 
-const now = new Date()
-
-const startDate =
-  new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    1
-  )
-
-const endDate =
-  new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23, 59, 59
-  )
 
 
 const totalMeals = computed(() =>
@@ -190,16 +209,35 @@ const loadDashboard = async () => {
 
   fullname.value = user.fullname
 
-  currentMonth.value =
-  new Date().toLocaleDateString(
-    'th-TH',
-    {
-      month: 'long',
-      year: 'numeric'
-    }
+  currentDate.value =
+    new Date().toLocaleDateString(
+      'th-TH',
+      {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }
+    )
+
+const today = new Date()
+
+const todayStart =
+  new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    0,0,0
   )
 
-  const { data, error } =
+const todayEnd =
+  new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    23,59,59
+  )
+
+const { data, error } =
   await supabase
     .from('meal_logs')
     .select(`
@@ -211,19 +249,21 @@ const loadDashboard = async () => {
     .eq('user_id', user.id)
     .gte(
       'eaten_at',
-      startDate.toISOString()
+      todayStart.toISOString()
     )
     .lte(
       'eaten_at',
-      endDate.toISOString()
+      todayEnd.toISOString()
     )
 
-  if (error) {
-    console.error(error)
-    return
-  }
-
   history.value = data || []
+
+  sodiumToday.value =
+  history.value.reduce(
+    (sum, item) =>
+      sum + (item.foods?.sodium || 0),
+    0
+  )
 
   greenCount.value =
     data.filter(
@@ -275,6 +315,8 @@ const confirmLogout = () => {
   localStorage.removeItem('user')
   router.push('/login')
 }
+
+
 
 onMounted(() => {
   loadDashboard()
@@ -353,10 +395,12 @@ onUnmounted(() => {
   border-radius: 14px;
   font-size: 18px;
   margin-bottom: 12px;
+  margin-top: 20px;
 }
 
 .secondary-btn {
   width: 100%;
+   
   border: none;
   background: #2196f3;
   color: white;
@@ -421,6 +465,54 @@ onUnmounted(() => {
 .confirm-btn {
   background: #ef5350;
   color: white;
+}
+
+.sodium-card {
+  background: white;
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 16px;
+
+  box-shadow:
+    0 4px 12px
+    rgba(0,0,0,.08);
+}
+
+.sodium-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 18px;
+
+  background: #eee;
+
+  border-radius: 999px;
+
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+
+  background:
+    linear-gradient(
+      90deg,
+      #4caf50,
+      #ff9800,
+      #f44336
+    );
+
+  transition: .3s;
+}
+
+.progress-text {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
 }
 
 @keyframes popup {

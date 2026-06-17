@@ -14,11 +14,19 @@
 
     <div class="summary-card">
 
-  <FoodPieChart
-    :green="greenCount"
-    :yellow="yellowCount"
-    :red="redCount"
+  <div class="chart-wrapper">
+
+  <Bar
+    :data="chartData"
+    :options="chartOptions"
   />
+
+  <div class="limit-line">
+    ⚠ เส้นเป้าหมาย
+    2000 mg/วัน
+  </div>
+
+</div>
 
   <div class="summary-info">
     <div>
@@ -107,7 +115,40 @@
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
-import FoodPieChart from '@/components/FoodPieChart.vue'
+import annotationPlugin from 'chartjs-plugin-annotation'
+
+import {
+  Chart,
+  BarController,
+  BarElement,
+  LineController,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend
+} from 'chart.js'
+
+import {
+  Bar
+}
+from 'vue-chartjs'
+
+
+
+Chart.register(
+  BarElement,
+  LineElement,
+  PointElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  annotationPlugin
+)
+
+
 
 import {
   useRoute,
@@ -121,10 +162,135 @@ const route = useRoute()
 const router = useRouter()
 
 const history = ref([])
+
+
+const sodiumChartData = computed(() => {
+
+  const daily = {}
+
+  history.value.forEach(item => {
+
+    const d = new Date(item.eaten_at)
+
+    const key =
+      d.toISOString()
+        .split('T')[0]
+
+    if (!daily[key]) {
+      daily[key] = 0
+    }
+
+    daily[key] += Number(
+      item.foods?.sodium || 0
+    )
+  })
+
+  return Object.entries(daily)
+    .sort((a, b) =>
+      new Date(a[0]) -
+      new Date(b[0])
+    )
+    .map(([date, sodium]) => ({
+
+      date:
+        new Date(date)
+        .toLocaleDateString(
+          'th-TH',
+          {
+            day: 'numeric',
+            month: 'short'
+          }
+        ),
+
+      sodium
+    }))
+})
+
 const title = ref('')
 
 const currentPage = ref(1)
 const itemsPerPage = 5
+
+const chartData = computed(() => ({
+
+  labels:
+    sodiumChartData.value.map(
+      x => x.date
+    ),
+
+  datasets: [
+    {
+      label: 'โซเดียม (mg)',
+
+      data:
+        sodiumChartData.value.map(
+          x => x.sodium
+        ),
+
+      backgroundColor:
+        sodiumChartData.value.map(
+          x =>
+            x.sodium > 2000
+              ? '#ef5350'
+              : '#42b883'
+        ),
+
+      borderRadius: 8
+    },
+
+
+  ]
+}))
+
+const chartOptions = {
+
+  responsive: true,
+
+  plugins: {
+
+    legend: {
+      display: false
+    },
+
+    annotation: {
+
+      annotations: {
+
+        sodiumLimit: {
+
+          type: 'line',
+
+          yMin: 2000,
+          yMax: 2000,
+
+          borderColor: '#ff9800',
+
+          borderWidth: 3,
+
+          borderDash: [8, 5],
+
+          label: {
+            display: true,
+            content: '2000 mg',
+            position: 'end'
+          }
+        }
+      }
+    }
+  },
+
+  scales: {
+
+    y: {
+      beginAtZero: true,
+
+      title: {
+        display: true,
+        text: 'mg'
+      }
+    }
+  }
+}
 
 const greenCount = computed(() =>
   history.value.filter(
@@ -178,13 +344,6 @@ const redPercent = computed(() =>
     : 0
 )
 
-const sodiumTotal = computed(() => {
-  return history.value.reduce(
-    (sum, item) =>
-      sum + (item.foods?.sodium || 0),
-    0
-  )
-})
 
 const totalPages = computed(() =>
   Math.ceil(
@@ -241,8 +400,15 @@ async () => {
   const startDate =
   new Date(year, monthNum - 1, 1)
 
-const endDate =
-new Date(year, monthNum, 0)
+  const endDate =
+  new Date(
+    year,
+    monthNum,
+    0,
+    23,
+    59,
+    59
+  )
 
   const { data } =
     await supabase
@@ -274,8 +440,9 @@ new Date(year, monthNum, 0)
         }
       )
 
-  history.value =
-    data || []
+  history.value = data || []
+  console.log('DATA', data)
+  console.log('CHART', sodiumChartData.value)
 }
 
 const formatDate = (date) => {
@@ -433,5 +600,10 @@ h2 {
 .pagination button:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 350px;
 }
 </style>
