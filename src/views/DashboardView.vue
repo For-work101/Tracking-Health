@@ -261,7 +261,10 @@ const { data, error } =
   sodiumToday.value =
   history.value.reduce(
     (sum, item) =>
-      sum + (item.foods?.sodium || 0),
+      sum +
+      Number(
+        item.foods?.sodium || 0
+      ),
     0
   )
 
