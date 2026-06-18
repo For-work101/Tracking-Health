@@ -304,15 +304,15 @@ h2 {
 /* สีพื้นตามระดับ */
 
 .food-card.green {
-  background: #a1ff7f;
+  background: #c9ffb5;
 }
 
 .food-card.yellow {
-  background: #fff980;
+  background: #ffe8a3;
 }
 
 .food-card.red {
-  background: #f36060;
+  background: #ffd4d4;
 }
 
 /* รูป */
