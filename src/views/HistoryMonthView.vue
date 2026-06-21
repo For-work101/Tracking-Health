@@ -17,14 +17,16 @@
   <div class="chart-wrapper">
 
   <Bar
+    ref="chartRef"
     :data="chartData"
     :options="chartOptions"
+    @click="handleChartClick"
   />
 
-  <div class="limit-line">
-    ⚠ เส้นเป้าหมาย
-    2000 mg/วัน
-  </div>
+  
+
+
+
 
 </div>
 
@@ -45,14 +47,26 @@
       🧂 {{ sodiumTotal }} mg
     </div> -->
   </div>
+  <div
+    v-if="selectedDate"
+    class="day-detail"
+  >
 
-</div>
+    <h3>
+      รายการอาหารวันที่
+      {{
+        new Date(selectedDate)
+        .toLocaleDateString('th-TH')
+      }}
+    </h3>
 
+    <div class="history-list">
     <div
-      v-for="item in paginatedHistory"
+      v-for="item in selectedFoods"
       :key="item.id"
       class="history-card"
     >
+
       <img
         :src="item.foods?.image_url"
         class="food-image"
@@ -65,7 +79,8 @@
         </h4>
 
         <p>
-          {{ item.foods.sodium || 0 }} mg
+          {{ item.foods?.sodium }}
+          mg
         </p>
 
         <p>
@@ -77,44 +92,24 @@
         </small>
 
       </div>
-    </div>
-
-    <div
-      v-if="totalPages > 1"
-      class="pagination"
-    >
-
-      <button
-        @click="currentPage--"
-        :disabled="
-          currentPage === 1
-        "
-      >
-        ◀ ก่อนหน้า
-      </button>
-
-      <span>
-        {{ currentPage }}
-        /
-        {{ totalPages }}
-      </span>
-
-      <button
-        @click="currentPage++"
-        :disabled="
-          currentPage === totalPages
-        "
-      >
-        ถัดไป ▶
-      </button>
 
     </div>
+  </div>
+
+</div>
+
+</div>
+
+    
+
+    
 
   </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
+import { getElementAtEvent } from 'vue-chartjs'
 import annotationPlugin from 'chartjs-plugin-annotation'
 
 import {
@@ -161,7 +156,29 @@ from '@/lib/supabase'
 const route = useRoute()
 const router = useRouter()
 
+const chartRef = ref()
+
 const history = ref([])
+
+const selectedDate = ref(null)
+
+const selectedFoods = computed(() => {
+
+  if (!selectedDate.value) {
+    return []
+  }
+
+  return history.value.filter(item => {
+
+    const date =
+      new Date(item.eaten_at)
+        .toISOString()
+        .split('T')[0]
+
+    return date === selectedDate.value
+  })
+
+})
 
 
 const sodiumChartData = computed(() => {
@@ -192,15 +209,17 @@ const sodiumChartData = computed(() => {
     )
     .map(([date, sodium]) => ({
 
+      key: date,
+
       date:
         new Date(date)
-        .toLocaleDateString(
-          'th-TH',
-          {
-            day: 'numeric',
-            month: 'short'
-          }
-        ),
+          .toLocaleDateString(
+            'th-TH',
+            {
+              day: 'numeric',
+              month: 'short'
+            }
+          ),
 
       sodium
     }))
@@ -441,6 +460,15 @@ async () => {
       )
 
   history.value = data || []
+
+  if (sodiumChartData.value.length) {
+
+    selectedDate.value =
+      sodiumChartData.value[
+        sodiumChartData.value.length - 1
+      ].key
+  }
+
   console.log('DATA', data)
   console.log('CHART', sodiumChartData.value)
 }
@@ -479,6 +507,23 @@ const levelText =
   return '🔴 ควรลด'
 }
 
+const handleChartClick = (event) => {
+
+  const elements =
+    getElementAtEvent(
+      chartRef.value.chart,
+      event
+    )
+
+  if (!elements.length) return
+
+  const index =
+    elements[0].index
+
+  selectedDate.value =
+    sodiumChartData.value[index].key
+}
+
 onMounted(
   loadHistory
 )
@@ -505,58 +550,56 @@ h2 {
 }
 
 .history-card {
+  width: calc(50% - 6px);
   display: flex;
-  gap: 12px;
-
+  flex-direction: column;
+  align-items: center;
   background: white;
-
-  padding: 12px;
-
+  padding: 10px;
   border-radius: 14px;
-
-  margin-bottom: 12px;
-
-  box-shadow:
-    0 2px 8px rgba(0,0,0,.08);
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
 }
 
 .food-image {
-  width: 80px;
-  height: 80px;
-
+  width: 100%;
+  height: 100px;
   object-fit: cover;
-
   border-radius: 10px;
 }
 
-.food-info {
-  flex: 1;
+.food-info{
+  width: 100%;
+  text-align: center;
 }
 
-.food-info h4 {
-  margin: 0;
-}
-
-.food-info p {
+.food-info h4{
   margin: 8px 0;
+  font-size: 14px;
+}
+
+.food-info p{
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.food-info small{
+  font-size: 11px;
 }
 
 .summary-card {
   background: white;
+  height: auto;
   padding: 20px;
   border-radius: 20px;
   margin-bottom: 20px;
-
   box-shadow:
     0 4px 12px rgba(0,0,0,.08);
 }
 
 .summary-info {
-  margin-top: 15px;
-
   display: flex;
   flex-wrap: wrap;
-
   gap: 10px;
 }
 
@@ -605,5 +648,20 @@ h2 {
 .chart-wrapper {
   position: relative;
   height: 350px;
+}
+
+.history-list{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 500px){
+
+  .history-card{
+    width: 100%;
+  }
+
 }
 </style>
